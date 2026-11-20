@@ -1,0 +1,15 @@
+# Dépendances et builds
+node_modules/
+dist/
+.vercel/
+# Secrets locaux
+.env
+.env.*
+!.env.example
+# Classeurs Excel sources (données commerciales confidentielles — non versionnés)
+*.xlsx
+*.xls
+# Divers
+.DS_Store
+Thumbs.db
+*.log
