@@ -76,3 +76,20 @@ web/src/lib/defaults.js    paramètres repris des classeurs
 web/src/lib/engine.test.mjs tests de non-régression Excel
 web/src/pages/*            écrans
 ```
+
+## Déploiement (GitHub → Vercel)
+
+1. Créer un dépôt **privé** sur GitHub (ex. `myc-smart-costing`), sans README.
+2. Pousser le code :
+   ```bash
+   git remote add origin https://github.com/<votre-compte>/myc-smart-costing.git
+   git push -u origin main
+   ```
+3. Sur vercel.com → **Add New… → Project** → importer le dépôt.
+   - **Root Directory** : `web` · Framework : **Vite** (détecté) · Build : `npm run build` · Output : `dist`
+   - **Environment Variables** : `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` (valeurs de `web/.env`)
+   - **Deploy**
+4. Chaque `git push` sur `main` redéploie automatiquement.
+
+`web/vercel.json` renvoie toutes les routes vers `index.html` (rechargement de `/pieces-3d`, `/devis/...` sans 404).
+L'assistant IA reste servi par la fonction Supabase `mc-ai` (voir plus haut), pas par Vercel.
