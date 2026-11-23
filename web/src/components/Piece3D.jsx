@@ -139,7 +139,7 @@ function Model({ piece, finish, exploded, showDims, onStats, dimColor }) {
     onStats?.({ area })
     return () => parts.forEach((pt) => pt.geo.dispose())
   }, [parts, onStats])
-  const f = FINISHES[finish] || FINISHES.silver
+  const f = (finish && typeof finish === 'object') ? finish : (FINISHES[finish] || FINISHES.silver)
   const { L, W, H } = piece
   const off = 6 // décalage des cotes (mm)
   return (

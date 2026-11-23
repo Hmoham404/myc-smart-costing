@@ -8,6 +8,8 @@ import { computeCosting, detectAnomalies, commercialTiers, ENGINE_VERSION } from
 import { DEFAULT_PRODUCT, PROCESS_LABEL, COLOR_LABEL, STANDARD_CONDITIONS, LEGAL_NOTE } from '../lib/defaults'
 import { Field, NumInput, Seg, Kpi, useToast } from '../components/ui'
 import CadenceCard from '../components/CadenceCard'
+import ColorPicker from '../components/ColorPicker'
+import { usePaintCatalog, applyColor } from '../lib/usePaintCatalog'
 import { money, num, pct } from '../lib/format'
 
 const PIE = ['#1877f2', '#42b72a', '#f7b928']
@@ -72,6 +74,8 @@ export default function Calculator() {
   }, [sp])
 
   const set = (k) => (v) => { setSavedId(null); setProduct((p) => ({ ...p, [k]: v })) }
+  const paintCat = usePaintCatalog()
+  const pickColor = (c) => { setSavedId(null); setProduct((p) => applyColor(p, c, paintCat.colorToPaint)) }
   const r = useMemo(() => computeCosting(product, P, mode), [product, P, mode])
   const rOther = useMemo(() => computeCosting(product, P, mode === 'excel' ? 'corrected' : 'excel'), [product, P, mode])
   const anomalies = useMemo(() => detectAnomalies(product, P, r), [product, P, r])
@@ -206,6 +210,7 @@ export default function Calculator() {
                   {Object.entries(COLOR_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                 </select>
               </Field>
+              <div style={{ gridColumn: '1 / -1' }}><ColorPicker colors={paintCat.colors} value={product.color_id} onChange={pickColor} /></div>
               <Field label="Quantité demandée"><NumInput value={product.quantity} onChange={set('quantity')} /></Field>
               <Field label="Rebut (%)" hint={`Règle MYC pour cette diagonale : ${pct(r.suggestedScrap)}`}>
                 <NumInput value={+(product.scrap * 100).toFixed(4)} onChange={(v) => set('scrap')(v / 100)} />
@@ -226,7 +231,7 @@ export default function Calculator() {
         {/* ------------------ RÉSULTATS ------------------ */}
         <div>
           <div className="card">
-            <div className="card-title">Résultat — {product.client} · {product.reference}</div>
+            <div className="card-title">Résultat — {product.client} · {product.reference}{product.color_name ? ` · ${product.color_name}` : ''}</div>
             <div className="kpis">
               <Kpi label="Prix de vente unitaire" value={money(t.finalPrice)} hero />
               <Kpi label="Prix de revient" value={money(t.unitCost)} />

@@ -145,7 +145,9 @@ export function computeCosting(product, P, mode = 'excel') {
     source: measured ? 'measured' : 'computed',
   }
 
-  const paint = paintCost(P.paint, surfaceCoef, mode)
+  // Couleur choisie pour la pièce : son système de peinture remplace celui des paramètres
+  const paintCfg = product.paint_override ? { ...P.paint, ...product.paint_override } : P.paint
+  const paint = paintCost(paintCfg, surfaceCoef, mode)
   const paintShift = paint.costPerPiece * capacity // O8
   const workers = P.workers[process] // Q7
   const laborShift = P.hourly.labor_per_worker * workers * hours // Q8

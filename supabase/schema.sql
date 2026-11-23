@@ -263,6 +263,25 @@ create table if not exists public.mc_paint_items (
 );
 
 -- ---------------------------------------------------------------------
+-- 8 quater. COULEURS (teintes) : recette de peinture + couleur d'affichage
+--           Le coût est calculé dans l'application avec les prix des factures.
+-- ---------------------------------------------------------------------
+create table if not exists public.mc_colors (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null unique,
+  family      text not null default 'standard' check (family in ('standard','special')),
+  hex         text not null default '#dfe3e8',
+  metallic    boolean not null default true,
+  layers      jsonb not null default '[]'::jsonb,   -- [{role, code, cons}]
+  pigments    jsonb not null default '[]'::jsonb,   -- [{code, cons}]
+  notes       text default '',
+  created_by  uuid references public.mc_profiles(id) on delete set null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+alter table public.mc_products add column if not exists color_id uuid references public.mc_colors(id) on delete set null;
+
+-- ---------------------------------------------------------------------
 -- 9. ACCÈS (application sans login : accès via la clé publishable)
 --    Uniquement sur les tables mc_* ; les tables de l'autre application
 --    du projet ne sont pas touchées.
@@ -275,7 +294,7 @@ begin
            where schemaname = 'public' and tablename like 'mc\_%' loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
-  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals','mc_paint_invoices','mc_paint_items'] loop
+  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals','mc_paint_invoices','mc_paint_items','mc_colors'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('create policy mc_open_access on public.%I for all to anon, authenticated using (true) with check (true)', t);
   end loop;
@@ -295,7 +314,7 @@ grant select, insert, update, delete on
   public.mc_profiles, public.mc_clients, public.mc_parameter_sets, public.mc_products,
   public.mc_calculations, public.mc_quotes, public.mc_samples,
   public.mc_posts, public.mc_post_comments, public.mc_post_likes, public.mc_goals,
-  public.mc_paint_invoices, public.mc_paint_items
+  public.mc_paint_invoices, public.mc_paint_items, public.mc_colors
   to anon, authenticated;
 grant usage, select on sequence public.mc_quote_seq to anon, authenticated;
 
@@ -345,3 +364,14 @@ select 'Paramètres MYC TN — référence Excel', 1, true,
        'Valeurs reprises telles quelles du classeur de Slah Dridi. À valider.',
        $json${"currency":"USD","shift_hours":8,"daily_efficiency":0.8,"capacity_method":"pitch","consumables":{"spray_booth_filters":4,"other_consumables":10,"tungsten_wire":36.4,"aluminum_sheets":14,"gun_cleaning_fluid":14.411764705882355,"filters":4,"oil_pipes":2},"hourly":{"amort_uv_vacuum":56.25,"amort_paint":43.875,"labor_per_worker":2.5,"location":28.75,"other_elec":22.5},"workers":{"vacuum":10,"spray":13},"lines":{"vacuum":{"jumps":4,"spacing_mm":44.45,"speed_m_min":7.11,"efficiency":0.9},"spray":{"jumps":1,"spacing_mm":33.81,"speed_m_min":7.11,"efficiency":0.9}},"vacuum_machine":{"steel_length":28,"square_steel_per_turntable":6,"turntables_per_machine":8,"machines":2,"cycles_per_hour":4,"hours":7,"efficiency":0.9},"paint":{"base":[{"name":"Treatment agent","price":6.8,"cons":0.8},{"name":"Primer (basecoat)","price":7.9,"cons":1.2},{"name":"Topcoat","price":6.8,"cons":1}],"pigments":[{"name":"Brown pigment","price":30.4,"cons":0.061},{"name":"Black pigment","price":27.2,"cons":0.0194},{"name":"Red pigment","price":22.4,"cons":0.012},{"name":"Blue pigment","price":27.5,"cons":0.041}],"shipment_coef":1.1,"include_pigments":false,"use_surface_coef":true},"reference_surface":{"shape":"circular","d1":23,"d2":23,"h":26,"label":"BASIC SURFACE PUPA"},"pricing_mode":"coefficient","coefficient":1.65,"margin":0.8,"scrap_rule":{"threshold_mm":75,"below":0.12,"above":0.15},"tiers":[{"key":"5K","qty":5000},{"key":"10K","qty":10000},{"key":"25K","qty":25000},{"key":"50K","qty":50000},{"key":"100K+","qty":100000}],"commercial_grid":{"known_standard":[1.8,1.2,1.1,1,0.95],"known_special":[1.9,1.26,1.16,1.05,1],"new_standard":[2.25,1.5,1.375,1.25,1.19],"new_special":[2.35,1.56,1.435,1.3,1.24]},"cn_to_tn_factor":1.65,"handling_cost":{"below_qty":25000,"amount":300},"artwork_cost":300}$json$::jsonb
 where not exists (select 1 from public.mc_parameter_sets);
+
+-- Couleurs de départ (recettes issues des classeurs ; les prix viennent des factures)
+insert into public.mc_colors (name, family, hex, metallic, layers, pigments, notes) values
+  ('Shiny Silver', 'standard', '#e6e9ee', true,
+   '[{"role":"treatment","code":"PEC93821","cons":0.8},{"role":"basecoat","code":"PEC95230-20","cons":1.2},{"role":"topcoat","code":"PEC95610-16","cons":1}]',
+   '[]', 'Métallisation argent sans pigment — pièces D&G 17700 (TEST RESULT).'),
+  ('Couleur spéciale PUPA', 'special', '#d8b04c', true,
+   '[{"role":"treatment","code":"PEC93821","cons":0.8},{"role":"basecoat","code":"PEC95230-20","cons":1.2},{"role":"topcoat","code":"PEC95610-16","cons":1}]',
+   '[{"code":"PEC9BROWN 1701","cons":0.061},{"code":"PEC9BLACK 1901","cons":0.0194},{"code":"PEC9RED 1101","cons":0.012},{"code":"PEC9BLUE 1504","cons":0.041}]',
+   'Dosages pigments du classeur PUPA (COST PAINT-VACCUM).')
+on conflict (name) do nothing;

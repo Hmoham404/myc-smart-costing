@@ -7,6 +7,8 @@ import { computeCosting, commercialTiers } from '../lib/engine'
 import { EXCEL_PIECES, SHAPES, STYLES, FINISHES, FIXTURE_PHOTOS, pieceToProduct } from '../lib/pieces'
 import { conditionsFor } from '../lib/conditions'
 import CadenceCard from '../components/CadenceCard'
+import ColorPicker from '../components/ColorPicker'
+import { usePaintCatalog, applyColor } from '../lib/usePaintCatalog'
 import { Field, NumInput, Seg, useToast } from '../components/ui'
 import { money, num, pct } from '../lib/format'
 
@@ -38,6 +40,8 @@ export default function Pieces3D() {
   const [clientType, setClientType] = useState('known')
   const [useReal, setUseReal] = useState(false)
   const [cadence, setCadence] = useState(null)
+  const paintCat = usePaintCatalog()
+  const [colorSel, setColorSel] = useState(null)
   const [view, setView] = useState('3d')
   const [exploded, setExploded] = useState(false)
   const [showDims, setShowDims] = useState(true)
@@ -62,8 +66,8 @@ export default function Pieces3D() {
     const diag = base.shape === 'circular' ? Math.max(dims.L, dims.W) : Math.hypot(dims.L, dims.W)
     base.scrap = diag < P.scrap_rule.threshold_mm ? P.scrap_rule.below : P.scrap_rule.above
     if (useReal && area3d) base.surface_override = area3d
-    return base
-  }, [dims, quantity, clientType, useReal, area3d, P, cadence])
+    return colorSel ? applyColor(base, colorSel, paintCat.colorToPaint) : base
+  }, [dims, quantity, clientType, useReal, area3d, P, cadence, colorSel, paintCat.colorToPaint])
   const r = useMemo(() => computeCosting(product, P, 'excel'), [product, P])
   const r50 = useMemo(() => computeCosting({ ...product, quantity: 50000 }, P, 'excel'), [product, P])
   const tiers = commercialTiers(r50.totals.finalPrice, P, clientType, product.color)
@@ -136,7 +140,7 @@ export default function Pieces3D() {
           <div className="viewer">
             {view === '3d' ? (
               <Suspense fallback={<div className="empty">Chargement de la 3D…</div>}>
-                <Piece3D piece={dims} finish={dims.finish} exploded={exploded} showDims={showDims} autoRotate={autoRotate} onStats={onStats} dark={theme === 'dark'} />
+                <Piece3D piece={dims} finish={colorSel ? { color: colorSel.hex, metal: colorSel.metallic ? 0.85 : 0.05, rough: colorSel.metallic ? 0.2 : 0.45 } : dims.finish} exploded={exploded} showDims={showDims} autoRotate={autoRotate} onStats={onStats} dark={theme === 'dark'} />
               </Suspense>
             ) : (
               <div className="photo-grid">
@@ -191,7 +195,8 @@ export default function Pieces3D() {
             <Field label="Quantité"><NumInput value={quantity} onChange={(v) => setQuantity(Math.max(1, Math.round(v)))} /></Field>
             <Field label="Client"><Seg value={clientType} onChange={setClientType} options={[['known', 'Connu'], ['new', 'Nouveau']]} /></Field>
           </div>
-          <Field label="Couleur"><Seg value={dims.color || 'standard'} onChange={(v) => setDims({ ...dims, color: v })} options={[['standard', 'Standard'], ['special', 'Spéciale']]} /></Field>
+          <Field label="Couleur (grille commerciale)"><Seg value={colorSel ? colorSel.family : (dims.color || 'standard')} onChange={(v) => { setColorSel(null); setDims({ ...dims, color: v }) }} options={[['standard', 'Standard'], ['special', 'Spéciale']]} /></Field>
+          <div style={{ marginTop: 10 }}><ColorPicker colors={paintCat.colors} value={colorSel?.id} onChange={setColorSel} /></div>
           <label className="check" style={{ marginTop: 10 }}>
             <input type="checkbox" checked={useReal} onChange={(e) => setUseReal(e.target.checked)} />
             Calculer la peinture avec la surface 3D réelle

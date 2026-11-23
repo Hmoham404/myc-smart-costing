@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Droplets, FileText, Plus, Trash2, Save, AlertTriangle, TrendingUp } from 'lucide-react'
+import { Droplets, FileText, Plus, Trash2, Save, AlertTriangle, TrendingUp, Palette, Pencil, X } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase, publishPost } from '../lib/supabase'
 import { useApp } from '../context/AppContext'
@@ -9,6 +9,7 @@ import { ROLES, infoFor, DEFAULT_SYSTEM, latestPrices } from '../lib/paints'
 import { Field, NumInput, Seg, useToast } from '../components/ui'
 import { useViz, axisProps, VizTooltip, Legend } from '../components/viz'
 import { money, num, pct } from '../lib/format'
+import { usePaintCatalog, applyColor } from '../lib/usePaintCatalog'
 
 const EMPTY_INV = { invoice_no: '', invoice_date: '', supplier: 'ZHEJIANG UVCHEM SPECIAL COATINGS', fx_usd_rmb: 7, moq_kg: 6000, moq_surcharge: 0.05, rows: [{ code: '', price: 0, packing: 18, drums: 0 }] }
 
@@ -25,6 +26,9 @@ export default function Paint() {
   const [belowMoq, setBelowMoq] = useState(false)
   const [shipCoef, setShipCoef] = useState(P.paint.shipment_coef)
   const [form, setForm] = useState(null)
+  const cat = usePaintCatalog()
+  const NEW_COLOR = { id: null, name: '', family: 'special', hex: '#c3262e', metallic: true, notes: '' }
+  const [colorMeta, setColorMeta] = useState(null) // couleur en cours d'édition (null = système par défaut)
 
   const load = async () => {
     const [a, b] = await Promise.all([
@@ -60,6 +64,27 @@ export default function Paint() {
   }, [P, system, latest, method, belowMoq, shipCoef, last])
 
   const ref = { ...DEFAULT_PRODUCT, jumps: 4 }
+  const colorCost = (color) => computeCosting(applyColor(ref, color, cat.colorToPaint), P, 'excel')
+  const editColor = (color) => {
+    setColorMeta(color ? { id: color.id, name: color.name, family: color.family, hex: color.hex, metallic: color.metallic, notes: color.notes || '' } : { ...NEW_COLOR })
+    setSystem(color ? { layers: color.layers?.length ? color.layers : DEFAULT_SYSTEM.layers, pigments: color.pigments || [] } : { layers: DEFAULT_SYSTEM.layers, pigments: [] })
+    setTimeout(() => document.getElementById('recette')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
+  const saveColor = async () => {
+    if (!colorMeta?.name?.trim()) { setToast('Donnez un nom à la couleur'); return }
+    const row = { name: colorMeta.name.trim(), family: colorMeta.family, hex: colorMeta.hex, metallic: colorMeta.metallic, notes: colorMeta.notes,
+      layers: system.layers, pigments: system.pigments.filter((g) => g.code), updated_at: new Date().toISOString() }
+    const res = colorMeta.id ? await supabase.from('mc_colors').update(row).eq('id', colorMeta.id)
+      : await supabase.from('mc_colors').insert({ ...row, created_by: profile.id })
+    if (res.error) { setToast(res.error.message); return }
+    if (!colorMeta.id) await publishPost(profile.id, 'parameters', `🎨 Nouvelle couleur « ${row.name} » (${row.family === 'special' ? 'spéciale' : 'standard'}) : ${row.pigments.length} pigment(s).`)
+    setToast(`Couleur « ${row.name} » enregistrée ✔`); setColorMeta(null); cat.reload()
+  }
+  const delColor = async (color) => {
+    if (!confirm(`Supprimer la couleur « ${color.name} » ?`)) return
+    const { error } = await supabase.from('mc_colors').delete().eq('id', color.id)
+    if (error) setToast(error.message); else cat.reload()
+  }
   const rNow = useMemo(() => computeCosting(ref, P, 'excel'), [P])
   const rNew = useMemo(() => computeCosting(ref, P2, 'excel'), [P2])
 
@@ -105,6 +130,33 @@ export default function Paint() {
       {loaded && !err && !invoices.length && <div className="db-warning"><b>Aucune facture.</b> Exécutez <code>supabase/seed_peinture.sql</code> (factures UVCHEM du 19/11/2025 et du 10/01/2026) ou ajoutez une facture.</div>}
 
       <div className="dash">
+        <div className="card span-12">
+          <div className="card-title"><Palette size={17} /> Couleurs (teintes) <span className="pill brouillon">{cat.colors.length}</span>
+            <span className="spacer" /><button className="btn btn-primary" onClick={() => editColor(null)}><Plus size={14} /> Nouvelle couleur</button></div>
+          {cat.error && <div className="card-sub">Table des couleurs absente : exécutez <code>supabase/schema.sql</code>.</div>}
+          <div className="color-grid">
+            {cat.colors.map((col) => {
+              const rc = colorCost(col)
+              return (
+                <div key={col.id} className={`color-card ${colorMeta?.id === col.id ? 'on' : ''}`}>
+                  <span className="color-swatch" style={{ background: col.metallic ? `linear-gradient(135deg, #fff 0%, ${col.hex} 45%, #222 125%)` : col.hex }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <b>{col.name}</b>
+                    <div className="card-sub">{col.family === 'special' ? 'Couleur spéciale' : 'Standard'} · {(col.pigments || []).length} pigment(s)</div>
+                    <div style={{ fontSize: 13, marginTop: 4 }}><b>{num(rc.paint.pricePerKg, 2)} $/kg</b> · {money(rc.paint.costPerPiece)} / pièce · vente {money(rc.totals.finalPrice)}</div>
+                  </div>
+                  <div className="btn-row" style={{ flexDirection: 'column' }}>
+                    <button className="btn btn-light" style={{ padding: '4px 8px' }} onClick={() => editColor(col)} title="Modifier"><Pencil size={13} /></button>
+                    <button className="btn btn-danger" style={{ padding: '4px 8px' }} onClick={() => delColor(col)} title="Supprimer"><Trash2 size={13} /></button>
+                  </div>
+                </div>
+              )
+            })}
+            {!cat.colors.length && !cat.error && <div className="card-sub">Aucune couleur. Cliquez sur « Nouvelle couleur ».</div>}
+          </div>
+          <div className="card-sub" style={{ marginTop: 8 }}>Coûts calculés sur la pièce de référence PUPA CAP (50K) avec les derniers prix des factures. Les couleurs se choisissent ensuite dans le calculateur et dans « Pièces 3D ».</div>
+        </div>
+
         {invoices.map((inv) => {
           const its = items.filter((x) => x.invoice_id === inv.id)
           const kg = its.reduce((a, x) => a + Number(x.qty_kg || 0), 0)
@@ -162,8 +214,17 @@ export default function Paint() {
         )}
 
         {/* ---- Système de peinture ---- */}
-        <div className="card span-8">
-          <div className="card-title">Système de peinture utilisé pour le chiffrage</div>
+        <div className="card span-8" id="recette">
+          <div className="card-title">{colorMeta ? <>Recette de la couleur {colorMeta.name ? `« ${colorMeta.name} »` : '(nouvelle)'}</> : 'Système de peinture par défaut (paramètres)'}
+            {colorMeta && <><span className="spacer" /><button className="btn btn-light" onClick={() => setColorMeta(null)}><X size={14} /> Fermer</button></>}</div>
+          {colorMeta && (
+            <div className="grid g4" style={{ marginBottom: 14, alignItems: 'end' }}>
+              <Field label="Nom de la couleur"><input value={colorMeta.name} placeholder="ex. Rouge D&G" onChange={(e) => setColorMeta({ ...colorMeta, name: e.target.value })} /></Field>
+              <Field label="Famille"><Seg value={colorMeta.family} onChange={(v) => setColorMeta({ ...colorMeta, family: v })} options={[['standard', 'Standard'], ['special', 'Spéciale']]} /></Field>
+              <Field label="Couleur d'affichage (3D)"><input type="color" value={colorMeta.hex} onChange={(e) => setColorMeta({ ...colorMeta, hex: e.target.value })} style={{ height: 40, padding: 3 }} /></Field>
+              <Field label="Aspect"><Seg value={colorMeta.metallic ? 'm' : 'p'} onChange={(v) => setColorMeta({ ...colorMeta, metallic: v === 'm' })} options={[['m', 'Métallisé'], ['p', 'Mat / laqué']]} /></Field>
+            </div>
+          )}
           <div className="table-wrap">
             <table className="t">
               <thead><tr><th>Couche</th><th>Référence UVCHEM</th><th className="num">Prix ($/kg)</th><th className="num">Conso (g / pièce réf.)</th><th>Source</th></tr></thead>
@@ -187,11 +248,15 @@ export default function Paint() {
                     </select></td>
                     <td className="num">{latest[g.code] ? num(latest[g.code].price, 2) : '—'}</td>
                     <td className="num"><NumInput className="input" style={{ width: 90, textAlign: 'end' }} value={g.cons} onChange={(v) => setPig(i, 'cons', v)} /></td>
-                    <td className="card-sub">{latest[g.code]?.invoice || '—'}</td>
+                    <td className="card-sub">{latest[g.code]?.invoice || '—'} <button className="btn btn-danger" style={{ padding: '2px 6px', marginInlineStart: 6 }} onClick={() => setSystem((st) => ({ ...st, pigments: st.pigments.filter((_, j) => j !== i) }))}><Trash2 size={12} /></button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="btn-row" style={{ marginTop: 8 }}>
+            <button className="btn btn-light" onClick={() => setSystem((st) => ({ ...st, pigments: [...st.pigments, { code: codeOptions('pigment')[0] || '', cons: 0.01 }] }))}><Plus size={14} /> Pigment</button>
+            {colorMeta && <button className="btn btn-primary" onClick={saveColor}><Save size={14} /> Enregistrer la couleur</button>}
           </div>
           <div className="grid g3" style={{ marginTop: 14 }}>
             <Field label="Méthode de prix" hint="Excel : prix max des couches · pondérée : coût réel"><Seg value={method} onChange={setMethod} options={[['max', 'Excel (max)'], ['weighted', 'Pondérée']]} /></Field>
