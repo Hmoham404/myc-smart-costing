@@ -11,6 +11,8 @@ const scaleList = (list, k, f) => list.map((x) => ({ ...x, [k]: x[k] * f }))
 export const LEVERS = [
   { key: 'speed', label: 'Vitesse chaîne', unit: 'm/min', min: 4, max: 12, step: 0.01, dec: 2,
     get: (P, x) => P.lines[x.process].speed_m_min, set: (P, x, v) => { P.lines[x.process].speed_m_min = v } },
+  { key: 'cadence', label: 'Cadence horaire', unit: 'pcs/h', min: 500, max: 4000, step: 10, dec: 0, int: true,
+    get: (P, x, r) => Math.round(r.capacity.cadence.effective), set: (P, x, v) => { x.cadence_per_hour = v } },
   { key: 'workers', label: 'Opérateurs', unit: 'pers.', min: 4, max: 30, step: 1, dec: 0, int: true,
     get: (P, x) => P.workers[x.process], set: (P, x, v) => { P.workers[x.process] = v } },
   { key: 'line_eff', label: 'Efficacité chaîne', unit: '', min: 0.6, max: 1, step: 0.01, dec: 2,

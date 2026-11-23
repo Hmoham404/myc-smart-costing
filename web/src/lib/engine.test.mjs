@@ -44,5 +44,20 @@ near('D&G 5K', t[0].unit, 0.8856)
 near('D&G 10K', t[1].unit, 0.5904)
 near('D&G 100K', t[4].unit, 0.4674)
 
+// 4) Cadence horaire
+near('PUPA cadence chaîne (pcs/h après efficacité)', pupa.capacity.cadence.line, 1727.5140607424069, 1e-6)
+near('PUPA cadence effective (12000/8 h)', pupa.capacity.cadence.effective, 1500)
+const meas = computeCosting({ ...DEFAULT_PRODUCT, jumps: 4, cadence_per_hour: 1800 }, DEFAULT_PARAMS, 'excel')
+near('Cadence mesurée 1800 pcs/h → capacité/poste', meas.capacity.capacity, 14400)
+near('Cadence mesurée → heures (56000/14400×8)', meas.totals.productionHours, 32)
+
+// 5) Prix peinture pondéré et MOQ (+5 %)
+const Pw = JSON.parse(JSON.stringify(DEFAULT_PARAMS)); Pw.paint.price_method = 'weighted'
+const w = computeCosting({ ...DEFAULT_PRODUCT, jumps: 4 }, Pw, 'excel')
+// (6.8×0.8 + 7.9×1.2 + 6.8×1) / 3 = 7.24 $/kg × 1.1
+near('Prix peinture pondéré $/kg', w.paint.pricePerKg, 7.24 * 1.1, 1e-9)
+const Pm = JSON.parse(JSON.stringify(DEFAULT_PARAMS)); Pm.paint.below_moq = true; Pm.paint.moq_surcharge = 0.05
+near('Majoration MOQ +5 %', computeCosting({ ...DEFAULT_PRODUCT, jumps: 4 }, Pm, 'excel').paint.pricePerKg, 8.320035743920343 * 1.05, 1e-9)
+
 console.log(failed ? `\n${failed} test(s) en échec` : '\nTous les tests passent ✔')
 process.exit(failed ? 1 : 0)

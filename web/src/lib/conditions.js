@@ -20,6 +20,8 @@ export function conditionsFor(piece, product, r, P, quantity) {
   add('Production', r.capacity.machine.capacity < r.capacity.capacity ? 'warn' : 'ok', `Capacité : ${num(r.capacity.capacity)} pcs / poste`,
     `Chaîne ${num(r.capacity.capacity)} pcs, machine de métallisation ${num(r.capacity.machine.capacity)} pcs` +
     (r.capacity.machine.capacity < r.capacity.capacity ? ' → la machine est le goulot.' : '.') + ` Production : ${r.totals.productionHours} h pour ${num(r.totals.totalQty)} pcs.`)
+  add('Production', r.capacity.cadence.source === 'measured' ? 'applies' : 'info', `Cadence : ${num(r.capacity.cadence.effective, 0)} pcs / h`,
+    r.capacity.cadence.source === 'measured' ? 'Cadence réelle mesurée saisie (remplace le calcul théorique).' : `Calculée : ${num(r.capacity.capacity)} pcs par poste de ${P.shift_hours} h (chaîne ${num(r.capacity.cadence.line, 0)} pcs/h, machine ${num(r.capacity.cadence.machine, 0)} pcs/h).`)
   add('Production', 'info', `Peinture : ${num(r.paint.consPerPiece, 2)} g / pièce`,
     `Surface ${num(r.geometry.surface, 0)} mm² (${product.surface_override ? 'mesurée sur le modèle 3D' : 'formule Excel'}), coef. ${num(r.geometry.surfaceCoef, 2)} × réf. PUPA. Consommation théorique, à confirmer par essai.`)
 

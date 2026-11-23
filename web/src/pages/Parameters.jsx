@@ -120,6 +120,12 @@ export default function Parameters() {
         </div>
         <div className="grid g3" style={{ marginTop: 12 }}>
           <Field label="Coefficient d'expédition"><NumInput value={P.paint.shipment_coef} onChange={(v) => up('paint')({ ...P.paint, shipment_coef: v })} /></Field>
+          <Field label="Méthode de prix peinture" hint="Excel : prix max des couches · pondérée : coût réel">
+            <Seg value={P.paint.price_method || 'max'} onChange={(v) => up('paint')({ ...P.paint, price_method: v })} options={[['max', 'Excel (max)'], ['weighted', 'Pondérée']]} />
+          </Field>
+          <Field label="Commande sous le MOQ (6 000 kg)" hint="+5 % sur le prix peinture">
+            <Seg value={P.paint.below_moq ? 'y' : 'n'} onChange={(v) => up('paint')({ ...P.paint, below_moq: v === 'y', moq_surcharge: P.paint.moq_surcharge ?? 0.05 })} options={[['n', 'Non'], ['y', 'Oui']]} />
+          </Field>
           <Field label="Inclure le prix des pigments" hint="Excel : non (E19 × 0)">
             <Seg value={P.paint.include_pigments ? 'y' : 'n'} onChange={(v) => up('paint')({ ...P.paint, include_pigments: v === 'y' })} options={[['n', 'Non'], ['y', 'Oui']]} />
           </Field>

@@ -232,6 +232,37 @@ create table if not exists public.mc_goals (
 );
 
 -- ---------------------------------------------------------------------
+-- 8 ter. PEINTURE : factures fournisseurs (prix au kg) — page « Coût peinture »
+--        Les prix réels se chargent avec supabase/seed_peinture.sql (non versionné).
+-- ---------------------------------------------------------------------
+create table if not exists public.mc_paint_invoices (
+  id             uuid primary key default gen_random_uuid(),
+  supplier       text not null,
+  invoice_no     text not null unique,
+  invoice_date   date not null,
+  incoterm       text default 'CIF',
+  currency       text default 'USD',
+  fx_usd_rmb     numeric,
+  moq_kg         numeric default 6000,
+  moq_surcharge  numeric default 0.05,
+  notes          text default '',
+  created_by     uuid references public.mc_profiles(id) on delete set null,
+  created_at     timestamptz not null default now()
+);
+
+create table if not exists public.mc_paint_items (
+  id            uuid primary key default gen_random_uuid(),
+  invoice_id    uuid not null references public.mc_paint_invoices(id) on delete cascade,
+  code          text not null,
+  price_usd_kg  numeric not null,
+  packing_kg    numeric,
+  drums         numeric,
+  qty_kg        numeric,
+  amount_usd    numeric,
+  unique (invoice_id, code)
+);
+
+-- ---------------------------------------------------------------------
 -- 9. ACCÈS (application sans login : accès via la clé publishable)
 --    Uniquement sur les tables mc_* ; les tables de l'autre application
 --    du projet ne sont pas touchées.
@@ -244,7 +275,7 @@ begin
            where schemaname = 'public' and tablename like 'mc\_%' loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
-  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals'] loop
+  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals','mc_paint_invoices','mc_paint_items'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('create policy mc_open_access on public.%I for all to anon, authenticated using (true) with check (true)', t);
   end loop;
@@ -263,7 +294,8 @@ grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on
   public.mc_profiles, public.mc_clients, public.mc_parameter_sets, public.mc_products,
   public.mc_calculations, public.mc_quotes, public.mc_samples,
-  public.mc_posts, public.mc_post_comments, public.mc_post_likes, public.mc_goals
+  public.mc_posts, public.mc_post_comments, public.mc_post_likes, public.mc_goals,
+  public.mc_paint_invoices, public.mc_paint_items
   to anon, authenticated;
 grant usage, select on sequence public.mc_quote_seq to anon, authenticated;
 

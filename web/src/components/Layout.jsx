@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Calculator, LineChart, FileText, FlaskConical, Bell, LogOut, Search, Package, SlidersHorizontal,
-  Sparkles, History, Users, Target, Box, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
+  Sparkles, History, Users, Target, Box, Droplets, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { supabase } from '../lib/supabase'
@@ -29,6 +29,7 @@ export const NAV_GROUPS = [
   ['Données', [
     ['/pieces-3d', Box, 'Pièces 3D'],
     ['/produits', Package, 'Produits & clients'],
+    ['/peinture', Droplets, 'Coût peinture'],
     ['/parametres', SlidersHorizontal, 'Paramètres'],
   ]],
   ['Équipe', [

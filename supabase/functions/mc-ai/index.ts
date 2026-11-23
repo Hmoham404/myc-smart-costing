@@ -24,7 +24,7 @@ const LANG_NAMES: Record<string, string> = {
   fr: "French", en: "English", it: "Italian", zh: "Simplified Chinese", ar: "Arabic",
 };
 
-const LEVERS = ["speed", "workers", "line_eff", "daily_eff", "paint_price", "paint_cons", "labor_rate", "amort", "jumps", "coef", "scrap", "quantity"];
+const LEVERS = ["speed", "cadence", "workers", "line_eff", "daily_eff", "paint_price", "paint_cons", "labor_rate", "amort", "jumps", "coef", "scrap", "quantity"];
 const METRICS = ["finalPrice", "unitCost", "marginPct", "capacity", "productionHours", "totalAmount"];
 const MODE = { type: "string", enum: ["excel", "corrected"], description: "excel = formules du classeur telles quelles ; corrected = variante corrigée proposée (à valider)" };
 
@@ -44,7 +44,7 @@ const TOOLS = [
   },
   {
     name: "simulate",
-    description: "Recalcule la pièce avec des valeurs de leviers modifiées et renvoie les indicateurs avant/après. Unités : speed m/min ; workers personnes ; line_eff et daily_eff entre 0 et 1 ; paint_price et paint_cons en % (100 = actuel) ; labor_rate et amort en $/h ; jumps entier ; coef multiplicateur commercial ; scrap en % ; quantity en pièces.",
+    description: "Recalcule la pièce avec des valeurs de leviers modifiées et renvoie les indicateurs avant/après. Unités : speed m/min ; cadence pièces/heure (cadence réelle mesurée, remplace la capacité théorique) ; workers personnes ; line_eff et daily_eff entre 0 et 1 ; paint_price et paint_cons en % (100 = actuel) ; labor_rate et amort en $/h ; jumps entier ; coef multiplicateur commercial ; scrap en % ; quantity en pièces.",
     strict: true,
     input_schema: {
       type: "object",

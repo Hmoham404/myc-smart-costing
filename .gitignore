@@ -9,6 +9,10 @@ dist/
 # Classeurs Excel sources (données commerciales confidentielles — non versionnés)
 *.xlsx
 *.xls
+# Factures fournisseurs (prix + coordonnées bancaires — jamais sur GitHub)
+*.pdf
+supabase/seed_*.sql
+
 # Divers
 .DS_Store
 Thumbs.db

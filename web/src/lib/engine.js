@@ -67,9 +67,16 @@ export function paintCost(paint, surfaceCoef, mode) {
   const sharePig = sumAll && includePig ? sumPig / sumAll : 0 // E19 (×0 dans Excel)
   const maxBase = Math.max(0, ...base.map((p) => p.price))
   const maxPig = pig.length ? Math.max(0, ...pig.map((p) => p.price)) : 0
-  const pricePerKg = (maxBase * shareBase + maxPig * sharePig) * paint.shipment_coef // K17
+  // Méthode Excel (K17) : prix max des couches × part ; méthode « weighted » : moyenne pondérée par la consommation (coût réel)
+  const weighted = (paint.price_method === 'weighted' || mode === 'corrected')
+  const sumW = (list) => list.reduce((acc, p) => acc + (Number(p.price) || 0) * (Number(p.cons) || 0), 0)
+  const rawPrice = weighted
+    ? (sumAll ? (sumW(base) + (includePig ? sumW(pig) : 0)) / (sumBase + (includePig ? sumPig : 0)) : 0)
+    : maxBase * shareBase + maxPig * sharePig
+  const moqFactor = paint.below_moq ? 1 + (Number(paint.moq_surcharge) || 0) : 1
+  const pricePerKg = rawPrice * paint.shipment_coef * moqFactor // K17
   const costPerPiece = (pricePerKg / 1000) * consPerPiece // P8
-  return { sumBase, sumPig, consPerPiece, shareBase, sharePig, pricePerKg, costPerPiece, surfaceCoef: coef }
+  return { sumBase, sumPig, consPerPiece, shareBase, sharePig, pricePerKg, costPerPiece, surfaceCoef: coef, method: weighted ? 'weighted' : 'max', moqFactor }
 }
 
 export function processCostPerShift(P, process) {
@@ -125,8 +132,18 @@ export function computeCosting(product, P, mode = 'excel') {
   const autoJumps = Math.max(1, Math.ceil(diagonal / line.spacing_mm - 1e-9))
   const jumps = product.jumps ? Number(product.jumps) : autoJumps
   const cap = lineCapacity(line, hours, P.capacity_method, mode, jumps)
-  const capacity = cap.perShift // N7
+  // Cadence réelle mesurée (pcs/h) : remplace la capacité théorique de la chaîne si elle est saisie
+  const measured = Number(product.cadence_per_hour) > 0 ? Number(product.cadence_per_hour) : 0
+  const capacity = measured ? Math.round(measured * hours) : cap.perShift // N7
   const machine = vacuumMachineCapacity(P.vacuum_machine, jumps, P.capacity_method)
+  const cadence = {
+    theoretical: (60 * line.speed_m_min) / cap.distance, // pcs/h sans arrêt
+    line: cap.perHour, // pcs/h après efficacité chaîne
+    effective: capacity / hours, // pcs/h retenus pour le chiffrage (capacité / heures du poste)
+    machine: machine.capacity / (P.vacuum_machine.hours || hours), // pcs/h de la métallisation sous vide
+    measured: measured || null,
+    source: measured ? 'measured' : 'computed',
+  }
 
   const paint = paintCost(P.paint, surfaceCoef, mode)
   const paintShift = paint.costPerPiece * capacity // O8
@@ -167,7 +184,7 @@ export function computeCosting(product, P, mode = 'excel') {
     engine: ENGINE_VERSION,
     mode,
     geometry: { surface, refSurface, surfaceCoef, diagonal, quotient, autoJumps, jumps },
-    capacity: { ...cap, capacity, machine },
+    capacity: { ...cap, capacity, machine, cadence },
     paint: { ...paint, paintShift },
     labor: { workers, laborShift },
     process: proc,

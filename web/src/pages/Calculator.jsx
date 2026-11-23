@@ -7,6 +7,7 @@ import { supabase, publishPost } from '../lib/supabase'
 import { computeCosting, detectAnomalies, commercialTiers, ENGINE_VERSION } from '../lib/engine'
 import { DEFAULT_PRODUCT, PROCESS_LABEL, COLOR_LABEL, STANDARD_CONDITIONS, LEGAL_NOTE } from '../lib/defaults'
 import { Field, NumInput, Seg, Kpi, useToast } from '../components/ui'
+import CadenceCard from '../components/CadenceCard'
 import { money, num, pct } from '../lib/format'
 
 const PIE = ['#1877f2', '#42b72a', '#f7b928']
@@ -29,7 +30,8 @@ export function Trace({ r, P, product }) {
       <div><span className="f">Surface pièce</span> = {num(r.geometry.surface, 2)} mm² · <span className="f">réf.</span> {num(r.geometry.refSurface, 2)} → coef. surface = <b>{num(r.geometry.surfaceCoef, 4)}</b></div>
       <div><span className="f">Diagonale</span> = {num(r.geometry.diagonal, 1)} mm → sauts suggérés {r.geometry.autoJumps}, utilisés <b>{r.geometry.jumps}</b></div>
       <div><span className="f">Capacité chaîne</span> = 60 × {P.lines[product.process].speed_m_min} m/min ÷ {num(r.capacity.distance, 5)} m{P.capacity_method === 'pitch' ? ` × ${P.lines[product.process].efficiency}` : ''} = {num(r.capacity.perHour, 1)} pcs/h → <b>{num(r.capacity.capacity)} pcs/poste</b></div>
-      <div><span className="f">Prix peinture</span> = (max base × {num(r.paint.shareBase, 4)}{r.paint.sharePig ? ` + max pigments × ${num(r.paint.sharePig, 4)}` : ''}) × {P.paint.shipment_coef} = <b>{num(r.paint.pricePerKg, 4)} $/kg</b></div>
+      <div><span className="f">Cadence</span> = {num(r.capacity.cadence?.effective ?? r.capacity.capacity / P.shift_hours, 0)} pcs/h{r.capacity.cadence?.source === 'measured' ? ' (mesurée)' : ''} → {num(r.capacity.capacity)} pcs / {P.shift_hours} h</div>
+      <div><span className="f">Prix peinture</span> = (max base × {num(r.paint.shareBase, 4)}{r.paint.sharePig ? ` + max pigments × ${num(r.paint.sharePig, 4)}` : ''}) × {P.paint.shipment_coef} = <b>{num(r.paint.pricePerKg, 4)} $/kg</b>{r.paint.method === 'weighted' ? ' (moyenne pondérée)' : ''}{r.paint.moqFactor > 1 ? ' (+5 % MOQ)' : ''}</div>
       <div><span className="f">Conso peinture</span> = {num(r.paint.sumBase + r.paint.sumPig, 4)} g × {num(r.paint.surfaceCoef, 4)} = <b>{num(r.paint.consPerPiece, 3)} g/pièce</b> → {money(r.paint.costPerPiece)}/pièce</div>
       <div><span className="f">Peinture / poste</span> = {money(r.paint.costPerPiece)} × {num(r.capacity.capacity)} = <b>{money(r.paint.paintShift, 'USD', 2)}</b></div>
       <div><span className="f">MOD / poste</span> = {P.hourly.labor_per_worker} $/h × {r.labor.workers} op. × {P.shift_hours} h = <b>{money(r.labor.laborShift, 'USD', 2)}</b></div>
@@ -245,6 +247,8 @@ export default function Calculator() {
               <button className="btn btn-light" onClick={() => nav('/simulateur', { state: { product } })}>Simuler les quantités</button>
             </div>
           </div>
+
+          <CadenceCard r={r} P={P} product={product} onCadence={set('cadence_per_hour')} />
 
           <div className="card">
             <div className="card-title"><Sparkles size={18} color="#a033ff" /> Contrôles automatiques</div>

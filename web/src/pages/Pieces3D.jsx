@@ -6,6 +6,7 @@ import { useApp } from '../context/AppContext'
 import { computeCosting, commercialTiers } from '../lib/engine'
 import { EXCEL_PIECES, SHAPES, STYLES, FINISHES, FIXTURE_PHOTOS, pieceToProduct } from '../lib/pieces'
 import { conditionsFor } from '../lib/conditions'
+import CadenceCard from '../components/CadenceCard'
 import { Field, NumInput, Seg, useToast } from '../components/ui'
 import { money, num, pct } from '../lib/format'
 
@@ -36,6 +37,7 @@ export default function Pieces3D() {
   const [quantity, setQuantity] = useState(50000)
   const [clientType, setClientType] = useState('known')
   const [useReal, setUseReal] = useState(false)
+  const [cadence, setCadence] = useState(null)
   const [view, setView] = useState('3d')
   const [exploded, setExploded] = useState(false)
   const [showDims, setShowDims] = useState(true)
@@ -56,12 +58,12 @@ export default function Pieces3D() {
   const onStats = useCallback((s) => setArea3d(s.area), [])
 
   const product = useMemo(() => {
-    const base = pieceToProduct(dims, { quantity, client_type: clientType })
+    const base = pieceToProduct(dims, { quantity, client_type: clientType, cadence_per_hour: cadence })
     const diag = base.shape === 'circular' ? Math.max(dims.L, dims.W) : Math.hypot(dims.L, dims.W)
     base.scrap = diag < P.scrap_rule.threshold_mm ? P.scrap_rule.below : P.scrap_rule.above
     if (useReal && area3d) base.surface_override = area3d
     return base
-  }, [dims, quantity, clientType, useReal, area3d, P])
+  }, [dims, quantity, clientType, useReal, area3d, P, cadence])
   const r = useMemo(() => computeCosting(product, P, 'excel'), [product, P])
   const r50 = useMemo(() => computeCosting({ ...product, quantity: 50000 }, P, 'excel'), [product, P])
   const tiers = commercialTiers(r50.totals.finalPrice, P, clientType, product.color)
@@ -204,6 +206,7 @@ export default function Pieces3D() {
               {excelRef != null && <div className="k-delta" style={{ color: '#d6e6fa' }}>Excel : {money(excelRef)} ({r50.totals.finalPrice >= excelRef ? '+' : ''}{pct((r50.totals.finalPrice - excelRef) / excelRef, 1)})</div>}</div>
             <div className="kpi"><div className="k-label">Prix pour {num(quantity)} pcs</div><div className="k-value">{money(tiers.reduce((acc, t) => (quantity >= t.qty ? t : acc), tiers[0]).unit)}</div></div>
             <div className="kpi"><div className="k-label">Prix de revient</div><div className="k-value">{money(r.totals.unitCost)}</div></div>
+            <div className="kpi"><div className="k-label">Cadence / heure</div><div className="k-value">{num(r.capacity.cadence.effective, 0)} pcs</div></div>
             <div className="kpi"><div className="k-label">Capacité / poste</div><div className="k-value">{num(r.capacity.capacity)}</div></div>
             <div className="kpi"><div className="k-label">Heures de prod.</div><div className="k-value">{r.totals.productionHours} h</div></div>
             <div className="kpi"><div className="k-label">Surface (formule Excel)</div><div className="k-value">{num(formulaSurface / 100, 1)} cm²</div></div>
@@ -221,6 +224,8 @@ export default function Pieces3D() {
             </table>
           </div>
         </div>
+
+        <div className="span-12"><CadenceCard r={r} P={P} product={product} onCadence={setCadence} /></div>
 
         {/* ---- Conditions ---- */}
         <div className="card span-12">
