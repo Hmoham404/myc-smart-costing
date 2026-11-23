@@ -44,6 +44,7 @@ export const METRICS = [
   { key: 'unitCost', label: 'Prix de revient unitaire', unit: '$', dec: 4, better: 'down', get: (r) => r.totals.unitCost },
   { key: 'marginPct', label: 'Marge brute', unit: '%', dec: 1, better: 'up',
     get: (r) => (r.totals.finalPrice ? ((r.totals.finalPrice - r.totals.unitCost) / r.totals.finalPrice) * 100 : 0) },
+  { key: 'cadence', label: 'Cadence horaire', unit: 'pcs/h', dec: 0, better: 'up', get: (r) => r.capacity.cadence.effective },
   { key: 'capacity', label: 'Capacité par poste', unit: 'pcs', dec: 0, better: 'up', get: (r) => r.capacity.capacity },
   { key: 'productionHours', label: 'Heures de production', unit: 'h', dec: 0, better: 'down', get: (r) => r.totals.productionHours },
   { key: 'totalAmount', label: 'Montant total HT', unit: '$', dec: 0, better: 'up', get: (r) => r.totals.totalAmount },

@@ -10,6 +10,7 @@ import { DEFAULT_PRODUCT, PROCESS_LABEL } from '../lib/defaults'
 import { productFromRow, Trace } from './Calculator'
 import { Seg, useToast } from '../components/ui'
 import { useViz, axisProps, VizTooltip, Legend } from '../components/viz'
+import CadenceCard from '../components/CadenceCard'
 import { num } from '../lib/format'
 
 export const fmtMetric = (m, v) => {
@@ -174,6 +175,11 @@ export default function WhatIf() {
               Les marches viennent des arrondis Excel (capacité arrondie au millier inférieur, heures arrondies au supérieur).
               Actuel : {fmtLever(L, cur[lever])} → {fmtMetric(M, curY)}.
             </div>
+          </div>
+
+          {/* -------- Cadence horaire du scénario -------- */}
+          <div style={{ marginBottom: -20 }}>
+            <CadenceCard r={scen.r} P={scen.P} product={scen.product} />
           </div>
 
           {/* -------- Sensibilité -------- */}

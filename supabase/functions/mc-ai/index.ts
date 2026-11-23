@@ -25,7 +25,7 @@ const LANG_NAMES: Record<string, string> = {
 };
 
 const LEVERS = ["speed", "cadence", "workers", "line_eff", "daily_eff", "paint_price", "paint_cons", "labor_rate", "amort", "jumps", "coef", "scrap", "quantity"];
-const METRICS = ["finalPrice", "unitCost", "marginPct", "capacity", "productionHours", "totalAmount"];
+const METRICS = ["finalPrice", "unitCost", "marginPct", "cadence", "capacity", "productionHours", "totalAmount"];
 const MODE = { type: "string", enum: ["excel", "corrected"], description: "excel = formules du classeur telles quelles ; corrected = variante corrigée proposée (à valider)" };
 
 // Liste d'outils fixe et ordonnée (préfixe stable pour le cache de prompt)
