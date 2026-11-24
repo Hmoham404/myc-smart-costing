@@ -12,6 +12,7 @@ dist/
 # Factures fournisseurs (prix + coordonnées bancaires — jamais sur GitHub)
 *.pdf
 supabase/seed_*.sql
+*.private.json
 
 # Divers
 .DS_Store

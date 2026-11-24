@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Calculator, LineChart, FileText, FlaskConical, Bell, LogOut, Search, Package, SlidersHorizontal,
-  Sparkles, History, Users, Target, Box, Droplets, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
+  Sparkles, History, Users, Target, Box, Droplets, FolderKanban, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { supabase } from '../lib/supabase'
@@ -14,6 +14,7 @@ import { ROLE_LABEL, timeAgo } from '../lib/format'
 export const NAV_GROUPS = [
   ['Pilotage', [
     ['/', LayoutDashboard, 'Tableau de bord'],
+    ['/projets', FolderKanban, 'Mes projets'],
     ['/analyse', Gauge, 'Analyse what-if'],
     ['/objectifs', Target, 'Objectifs & IA'],
   ]],
@@ -127,8 +128,16 @@ function Header({ collapsed, setCollapsed, setMobile }) {
 }
 
 export default function Layout() {
-  const { dbError } = useApp()
+  const { dbError, profile } = useApp()
   const loc = useLocation()
+  const navTo = useNavigate()
+  // Accueil propre au profil (ex. Seif → Mes projets), une fois par session
+  useEffect(() => {
+    if (!profile?.home_path || loc.pathname !== '/') return
+    const key = `myc_home_${profile.id}`
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1') } catch { /* ignore */ }
+    navTo(profile.home_path, { replace: true })
+  }, [profile, loc.pathname, navTo])
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('myc_sb') === '1' } catch { return false } })
   const [mobile, setMobile] = useState(false)
   const [pending, setPending] = useState(0)

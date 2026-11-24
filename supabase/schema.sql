@@ -282,6 +282,27 @@ create table if not exists public.mc_colors (
 alter table public.mc_products add column if not exists color_id uuid references public.mc_colors(id) on delete set null;
 
 -- ---------------------------------------------------------------------
+-- 8 quinquies. PROJETS (chiffrage injection, besoin matière, capacité & planning)
+--              Données de départ : supabase/seed_projets.sql (non versionné).
+-- ---------------------------------------------------------------------
+create table if not exists public.mc_projects (
+  id          uuid primary key default gen_random_uuid(),
+  type        text not null check (type in ('injection','materials','capacity')),
+  title       text not null,
+  client      text default '',
+  reference   text default '',
+  status      text not null default 'en_cours' check (status in ('en_cours','valide','archive')),
+  owner_id    uuid references public.mc_profiles(id) on delete set null,
+  data        jsonb not null default '{}'::jsonb,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists mc_projects_owner_idx on public.mc_projects (owner_id, updated_at desc);
+
+-- Page d'accueil propre à un profil (ex. Seif → « Mes projets »)
+alter table public.mc_profiles add column if not exists home_path text;
+
+-- ---------------------------------------------------------------------
 -- 9. ACCÈS (application sans login : accès via la clé publishable)
 --    Uniquement sur les tables mc_* ; les tables de l'autre application
 --    du projet ne sont pas touchées.
@@ -294,7 +315,7 @@ begin
            where schemaname = 'public' and tablename like 'mc\_%' loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
-  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals','mc_paint_invoices','mc_paint_items','mc_colors'] loop
+  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals','mc_paint_invoices','mc_paint_items','mc_colors','mc_projects'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('create policy mc_open_access on public.%I for all to anon, authenticated using (true) with check (true)', t);
   end loop;
@@ -314,7 +335,7 @@ grant select, insert, update, delete on
   public.mc_profiles, public.mc_clients, public.mc_parameter_sets, public.mc_products,
   public.mc_calculations, public.mc_quotes, public.mc_samples,
   public.mc_posts, public.mc_post_comments, public.mc_post_likes, public.mc_goals,
-  public.mc_paint_invoices, public.mc_paint_items, public.mc_colors
+  public.mc_paint_invoices, public.mc_paint_items, public.mc_colors, public.mc_projects
   to anon, authenticated;
 grant usage, select on sequence public.mc_quote_seq to anon, authenticated;
 
@@ -375,3 +396,9 @@ insert into public.mc_colors (name, family, hex, metallic, layers, pigments, not
    '[{"code":"PEC9BROWN 1701","cons":0.061},{"code":"PEC9BLACK 1901","cons":0.0194},{"code":"PEC9RED 1101","cons":0.012},{"code":"PEC9BLUE 1504","cons":0.041}]',
    'Dosages pigments du classeur PUPA (COST PAINT-VACCUM).')
 on conflict (name) do nothing;
+
+-- Compte Seif : ingénieur projets (injection / planification), accueil sur « Mes projets »
+insert into public.mc_profiles (full_name, job_title, role, home_path)
+select 'Seif', 'Ingénieur projets — injection & planification', 'ingenieur', '/projets'
+where not exists (select 1 from public.mc_profiles where full_name = 'Seif');
+update public.mc_profiles set home_path = '/projets' where full_name = 'Seif' and home_path is null;

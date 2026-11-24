@@ -18,6 +18,8 @@ import WhatIf from './pages/WhatIf'
 import Goals from './pages/Goals'
 import Pieces3D from './pages/Pieces3D'
 import Paint from './pages/Paint'
+import Projects from './pages/Projects'
+import ProjectView from './pages/ProjectView'
 
 export default function App() {
   const { profile, loading } = useApp()
@@ -35,6 +37,8 @@ export default function App() {
         <Route path="/produits" element={<Products />} />
         <Route path="/pieces-3d" element={<Pieces3D />} />
         <Route path="/peinture" element={<Paint />} />
+        <Route path="/projets" element={<Projects />} />
+        <Route path="/projets/:id" element={<ProjectView />} />
         <Route path="/parametres" element={<Parameters />} />
         <Route path="/devis" element={<Quotes />} />
         <Route path="/devis/:id" element={<QuoteEditor />} />
