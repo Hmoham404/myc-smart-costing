@@ -20,11 +20,28 @@ import Pieces3D from './pages/Pieces3D'
 import Paint from './pages/Paint'
 import Projects from './pages/Projects'
 import ProjectView from './pages/ProjectView'
+import ProjectsHome from './pages/ProjectsHome'
+import WorkspaceChooser from './pages/WorkspaceChooser'
 
 export default function App() {
-  const { profile, loading } = useApp()
+  const { profile, loading, workspace } = useApp()
   if (loading) return <div className="splash"><img src="/logo-myc-dark.png" alt="MYC" /></div>
   if (!profile) return <Login />
+  if (!workspace) return <WorkspaceChooser />
+  // Espace Projets (Seif) : uniquement ses projets
+  if (workspace === 'projects') {
+    return (
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<ProjectsHome />} />
+          <Route path="/projets" element={<Projects />} />
+          <Route path="/projets/:id" element={<ProjectView />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Route>
+      </Routes>
+    )
+  }
+  // Espace Métallisation (Slah)
   return (
     <Routes>
       <Route element={<Layout />}>
@@ -37,8 +54,6 @@ export default function App() {
         <Route path="/produits" element={<Products />} />
         <Route path="/pieces-3d" element={<Pieces3D />} />
         <Route path="/peinture" element={<Paint />} />
-        <Route path="/projets" element={<Projects />} />
-        <Route path="/projets/:id" element={<ProjectView />} />
         <Route path="/parametres" element={<Parameters />} />
         <Route path="/devis" element={<Quotes />} />
         <Route path="/devis/:id" element={<QuoteEditor />} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FolderKanban, Plus, Copy, Archive, Factory, Boxes, CalendarRange, Trash2 } from 'lucide-react'
 import { supabase, publishPost } from '../lib/supabase'
 import { useApp } from '../context/AppContext'
@@ -16,9 +16,16 @@ export default function Projects() {
   const [toast, setToast] = useToast()
   const [projects, setProjects] = useState([])
   const [people, setPeople] = useState({})
-  const [scope, setScope] = useState('mine')
+  const [sp, setSp] = useSearchParams()
+  const typeFilter = sp.get('type')
+  const isLead = ['admin', 'directeur'].includes(profile.role)
+  const [scope, setScope] = useState(isLead ? 'all' : 'mine')
   const [err, setErr] = useState(null)
   const [creating, setCreating] = useState(null)
+  useEffect(() => {
+    const t = sp.get('new')
+    if (t && PROJECT_TYPES[t]) { setCreating({ type: t, title: '', client: '', reference: '', source: '' }); sp.delete('new'); setSp(sp, { replace: true }) }
+  }, [sp, setSp])
 
   const load = async () => {
     const [p, pr] = await Promise.all([
@@ -49,18 +56,18 @@ export default function Projects() {
   const setStatus = async (p, status) => { await supabase.from('mc_projects').update({ status }).eq('id', p.id); load() }
   const del = async (p) => { if (confirm(`Supprimer le projet « ${p.title} » ?`)) { await supabase.from('mc_projects').delete().eq('id', p.id); load() } }
 
-  const list = projects.filter((p) => (scope === 'mine' ? p.owner_id === profile.id : true)).filter((p) => scope === 'archive' ? p.status === 'archive' : p.status !== 'archive')
+  const list = projects.filter((p) => !typeFilter || p.type === typeFilter).filter((p) => (scope === 'mine' ? p.owner_id === profile.id : true)).filter((p) => scope === 'archive' ? p.status === 'archive' : p.status !== 'archive')
 
   return (
     <>
       {toast}
       <div className="page-header">
-        <h1><FolderKanban size={22} /> {scope === 'mine' ? 'Mes projets' : 'Projets'}</h1>
+        <h1><FolderKanban size={22} /> {typeFilter ? PROJECT_TYPES[typeFilter]?.label : scope === 'mine' ? 'Mes projets' : 'Projets'}</h1>
         <div className="btn-row">
           <div className="seg">
             {[['mine', 'Mes projets'], ['all', 'Tous'], ['archive', 'Archivés']].map(([k, l]) => <button key={k} className={scope === k ? 'on' : ''} onClick={() => setScope(k)}>{l}</button>)}
           </div>
-          <button className="btn btn-primary" onClick={() => setCreating({ type: 'injection', title: '', client: '', reference: '', source: '' })}><Plus size={15} /> Nouveau projet</button>
+          <button className="btn btn-primary" onClick={() => setCreating({ type: typeFilter || 'injection', title: '', client: '', reference: '', source: '' })}><Plus size={15} /> Nouveau projet</button>
         </div>
       </div>
 

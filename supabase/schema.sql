@@ -397,8 +397,15 @@ insert into public.mc_colors (name, family, hex, metallic, layers, pigments, not
    'Dosages pigments du classeur PUPA (COST PAINT-VACCUM).')
 on conflict (name) do nothing;
 
--- Compte Seif : ingénieur projets (injection / planification), accueil sur « Mes projets »
-insert into public.mc_profiles (full_name, job_title, role, home_path)
-select 'Seif', 'Ingénieur projets — injection & planification', 'ingenieur', '/projets'
+-- Espaces de travail : 'metal' (Slah — métallisation), 'projects' (Seif — projets injection),
+-- 'both' (direction / admin : choix de l'espace à l'entrée)
+alter table public.mc_profiles add column if not exists workspace text
+  check (workspace in ('metal','projects','both'));
+
+-- Compte Seif : interface Projets uniquement
+insert into public.mc_profiles (full_name, job_title, role, workspace)
+select 'Seif', 'Ingénieur projets — injection & planification', 'ingenieur', 'projects'
 where not exists (select 1 from public.mc_profiles where full_name = 'Seif');
-update public.mc_profiles set home_path = '/projets' where full_name = 'Seif' and home_path is null;
+update public.mc_profiles set workspace = 'projects' where full_name = 'Seif' and workspace is null;
+update public.mc_profiles set workspace = 'both' where role in ('admin','directeur') and workspace is null;
+update public.mc_profiles set workspace = 'metal' where workspace is null;

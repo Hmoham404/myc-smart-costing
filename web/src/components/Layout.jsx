@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Calculator, LineChart, FileText, FlaskConical, Bell, LogOut, Search, Package, SlidersHorizontal,
-  Sparkles, History, Users, Target, Box, Droplets, FolderKanban, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
+  Sparkles, History, Users, Target, Box, Droplets, FolderKanban, Factory, Boxes, CalendarRange, ArrowLeftRight, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { supabase } from '../lib/supabase'
@@ -14,7 +14,6 @@ import { ROLE_LABEL, timeAgo } from '../lib/format'
 export const NAV_GROUPS = [
   ['Pilotage', [
     ['/', LayoutDashboard, 'Tableau de bord'],
-    ['/projets', FolderKanban, 'Mes projets'],
     ['/analyse', Gauge, 'Analyse what-if'],
     ['/objectifs', Target, 'Objectifs & IA'],
   ]],
@@ -39,36 +38,59 @@ export const NAV_GROUPS = [
     ['/equipe', Users, 'Équipe'],
   ]],
 ]
-const ALL = NAV_GROUPS.flatMap(([, items]) => items)
+export const PROJECT_GROUPS = [
+  ['Projets', [
+    ['/', LayoutDashboard, 'Tableau de bord'],
+    ['/projets', FolderKanban, 'Mes projets'],
+  ]],
+  ['Modules', [
+    ['/projets?type=injection', Factory, 'Chiffrage injection'],
+    ['/projets?type=materials', Boxes, 'Besoin matière'],
+    ['/projets?type=capacity', CalendarRange, 'Capacité & planning'],
+  ]],
+]
+const WS = {
+  metal: { groups: NAV_GROUPS, label: 'Espace Métallisation', foot: 'MYC Smart Metallization Costing · Formules : Slah Dridi · Validation : M. Sami Ladjimi' },
+  projects: { groups: PROJECT_GROUPS, label: 'Espace Projets', foot: 'MYC Projets injection · Chiffrage, besoin matière, capacité & planning' },
+}
+const allItems = (groups) => groups.flatMap(([, items]) => items)
 
-function Sidebar({ pending }) {
+function Sidebar({ pending, ws }) {
+  const loc = useLocation()
+  const isActive = (to) => {
+    const [path, query] = to.split('?')
+    if (query) return loc.pathname === path && loc.search.includes(query)
+    if (path === '/') return loc.pathname === '/'
+    if (path === '/projets') return loc.pathname.startsWith('/projets') && !/type=/.test(loc.search)
+    return loc.pathname.startsWith(path)
+  }
   return (
     <aside className="sidebar">
-      <Link to="/" className="sb-brand" title="MYC Smart Costing"><Logo tone="light" height={46} /></Link>
-      {NAV_GROUPS.map(([group, items]) => (
+      <Link to="/" className="sb-brand" title="MYC Smart Costing"><Logo tone="light" height={46} /><span className="sb-space">{WS[ws].label}</span></Link>
+      {WS[ws].groups.map(([group, items]) => (
         <div key={group}>
           <div className="sb-section">{group}</div>
           {items.map(([to, Icon, label, badge]) => (
-            <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `sb-link ${isActive ? 'active' : ''}`} title={label}>
+            <Link key={to} to={to} className={`sb-link ${isActive(to) ? 'active' : ''}`} title={label}>
               <Icon size={18} /><span className="sb-label">{label}</span>
               {badge === 'pending' && pending > 0 && <span className="sb-badge">{pending}</span>}
-            </NavLink>
+            </Link>
           ))}
         </div>
       ))}
-      <div className="sb-foot">MYC Smart Metallization Costing<br />Formules : Slah Dridi · Validation : M. Sami Ladjimi</div>
+      <div className="sb-foot">{WS[ws].foot}</div>
     </aside>
   )
 }
 
-function Header({ collapsed, setCollapsed, setMobile }) {
-  const { profile, signOut, theme, toggleTheme } = useApp()
+function Header({ collapsed, setCollapsed, setMobile, ws }) {
+  const { profile, signOut, theme, toggleTheme, canSwitchWs, setWorkspace } = useApp()
   const [menu, setMenu] = useState(null)
   const [notifs, setNotifs] = useState([])
   const [q, setQ] = useState('')
   const nav = useNavigate()
   const loc = useLocation()
-  const current = ALL.find(([to]) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to)))
+  const current = allItems(WS[ws].groups).find(([to]) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to.split('?')[0])))
   useEffect(() => setMenu(null), [loc.pathname])
   useEffect(() => {
     supabase.from('mc_posts').select('id, content, kind, created_at, author:mc_profiles(full_name)')
@@ -85,17 +107,27 @@ function Header({ collapsed, setCollapsed, setMobile }) {
         <div className="header-sub">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
       </div>
       <div className="header-spacer" />
-      <form className="search" onSubmit={(e) => { e.preventDefault(); nav(`/produits?q=${encodeURIComponent(q)}`) }}>
-        <Search size={16} color="var(--muted)" />
-        <input placeholder="Rechercher une pièce, un client…" value={q} onChange={(e) => setQ(e.target.value)} />
-      </form>
+      {canSwitchWs && (
+        <div className="seg ws-switch" title="Changer d'espace">
+          <button className={ws === 'metal' ? 'on' : ''} onClick={() => { setWorkspace('metal'); nav('/') }}>Métallisation · Slah</button>
+          <button className={ws === 'projects' ? 'on' : ''} onClick={() => { setWorkspace('projects'); nav('/') }}>Projets · Seif</button>
+        </div>
+      )}
+      {ws === 'metal' && (
+        <form className="search" onSubmit={(e) => { e.preventDefault(); nav(`/produits?q=${encodeURIComponent(q)}`) }}>
+          <Search size={16} color="var(--muted)" />
+          <input placeholder="Rechercher une pièce, un client…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </form>
+      )}
       <LanguageBar compact />
       <button className="icon-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}>
         {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
       </button>
-      <button className="icon-btn" title="Notifications" onClick={() => setMenu(menu === 'notif' ? null : 'notif')}>
-        <Bell size={18} />{notifs.length > 0 && <span className="badge">{notifs.length}</span>}
-      </button>
+      {ws === 'metal' && (
+        <button className="icon-btn" title="Notifications" onClick={() => setMenu(menu === 'notif' ? null : 'notif')}>
+          <Bell size={18} />{notifs.length > 0 && <span className="badge">{notifs.length}</span>}
+        </button>
+      )}
       <button className="me-btn" onClick={() => setMenu(menu === 'me' ? null : 'me')}>
         <Avatar name={profile?.full_name || '?'} size={32} />
         <div><b>{profile?.full_name}</b><span>{ROLE_LABEL[profile?.role]}</span></div>
@@ -103,8 +135,9 @@ function Header({ collapsed, setCollapsed, setMobile }) {
 
       {menu === 'me' && (
         <div className="menu">
-          <Link className="menu-item" to="/equipe"><span className="menu-icon"><Users size={16} /></span>Mon profil & équipe</Link>
-          <Link className="menu-item" to="/parametres"><span className="menu-icon"><SlidersHorizontal size={16} /></span>Paramètres</Link>
+          {ws === 'metal' && <Link className="menu-item" to="/equipe"><span className="menu-icon"><Users size={16} /></span>Mon profil & équipe</Link>}
+          {ws === 'metal' && <Link className="menu-item" to="/parametres"><span className="menu-icon"><SlidersHorizontal size={16} /></span>Paramètres</Link>}
+          {canSwitchWs && <button className="menu-item" onClick={() => setWorkspace(null)}><span className="menu-icon"><ArrowLeftRight size={16} /></span>Choisir un autre espace</button>}
           <button className="menu-item" onClick={signOut}><span className="menu-icon"><LogOut size={16} /></span>Changer de profil</button>
         </div>
       )}
@@ -128,32 +161,25 @@ function Header({ collapsed, setCollapsed, setMobile }) {
 }
 
 export default function Layout() {
-  const { dbError, profile } = useApp()
+  const { dbError, workspace } = useApp()
+  const ws = workspace === 'projects' ? 'projects' : 'metal'
   const loc = useLocation()
-  const navTo = useNavigate()
-  // Accueil propre au profil (ex. Seif → Mes projets), une fois par session
-  useEffect(() => {
-    if (!profile?.home_path || loc.pathname !== '/') return
-    const key = `myc_home_${profile.id}`
-    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1') } catch { /* ignore */ }
-    navTo(profile.home_path, { replace: true })
-  }, [profile, loc.pathname, navTo])
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('myc_sb') === '1' } catch { return false } })
   const [mobile, setMobile] = useState(false)
   const [pending, setPending] = useState(0)
   useEffect(() => { try { localStorage.setItem('myc_sb', collapsed ? '1' : '0') } catch { /* ignore */ } }, [collapsed])
   useEffect(() => {
     setMobile(false)
-    supabase.from('mc_quotes').select('*', { count: 'exact', head: true }).eq('status', 'soumis').then(({ count }) => setPending(count || 0))
+    if (ws === 'metal') supabase.from('mc_quotes').select('*', { count: 'exact', head: true }).eq('status', 'soumis').then(({ count }) => setPending(count || 0))
   }, [loc.pathname])
 
   return (
-    <div className={`app ${collapsed ? 'collapsed' : ''} ${mobile ? 'mobile-open' : ''}`}>
-      <Sidebar pending={pending} />
+    <div className={`app ws-${ws} ${collapsed ? 'collapsed' : ''} ${mobile ? 'mobile-open' : ''}`}>
+      <Sidebar pending={pending} ws={ws} />
       <div style={{ minWidth: 0 }}>
-        <Header collapsed={collapsed} setCollapsed={setCollapsed} setMobile={setMobile} />
+        <Header collapsed={collapsed} setCollapsed={setCollapsed} setMobile={setMobile} ws={ws} />
         <main className="content">
-          {dbError && (
+          {dbError && ws === 'metal' && (
             <div className="db-warning">
               <b>Base Supabase non initialisée.</b> Exécutez <code>supabase/schema.sql</code> dans Supabase → SQL Editor.
               Les calculs fonctionnent déjà avec les paramètres Excel par défaut.
