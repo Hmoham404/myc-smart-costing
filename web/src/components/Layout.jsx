@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Calculator, LineChart, FileText, FlaskConical, Bell, LogOut, Search, Package, SlidersHorizontal,
-  Sparkles, History, Users, Target, Box, Droplets, FolderKanban, Factory, Boxes, CalendarRange, ArrowLeftRight, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
+  Sparkles, History, Users, Target, Box, Droplets, FolderKanban, ArrowLeftRight, Library, Activity, Moon, Sun, PanelLeftClose, PanelLeftOpen, Gauge,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { supabase } from '../lib/supabase'
@@ -43,10 +43,8 @@ export const PROJECT_GROUPS = [
     ['/', LayoutDashboard, 'Tableau de bord'],
     ['/projets', FolderKanban, 'Mes projets'],
   ]],
-  ['Modules', [
-    ['/projets?type=injection', Factory, 'Chiffrage injection'],
-    ['/projets?type=materials', Boxes, 'Besoin matière'],
-    ['/projets?type=capacity', CalendarRange, 'Capacité & planning'],
+  ['Données', [
+    ['/bibliotheque', Library, 'Bibliothèque'],
   ]],
 ]
 const WS = {
@@ -61,7 +59,6 @@ function Sidebar({ pending, ws }) {
     const [path, query] = to.split('?')
     if (query) return loc.pathname === path && loc.search.includes(query)
     if (path === '/') return loc.pathname === '/'
-    if (path === '/projets') return loc.pathname.startsWith('/projets') && !/type=/.test(loc.search)
     return loc.pathname.startsWith(path)
   }
   return (

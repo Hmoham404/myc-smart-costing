@@ -22,6 +22,7 @@ import Projects from './pages/Projects'
 import ProjectView from './pages/ProjectView'
 import ProjectsHome from './pages/ProjectsHome'
 import WorkspaceChooser from './pages/WorkspaceChooser'
+import Library from './pages/Library'
 
 export default function App() {
   const { profile, loading, workspace } = useApp()
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/" element={<ProjectsHome />} />
           <Route path="/projets" element={<Projects />} />
           <Route path="/projets/:id" element={<ProjectView />} />
+          <Route path="/bibliotheque" element={<Library />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
       </Routes>

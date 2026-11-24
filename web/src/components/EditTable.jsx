@@ -14,7 +14,7 @@ export default function EditTable({ columns, rows, onChange, newRow, minRows = 0
       <table className="t edit-t">
         <thead>
           <tr>
-            {columns.map((c) => <th key={c.key} className={c.type === 'text' || c.type === 'select' ? '' : 'num'} style={{ width: c.width }}>{c.label}</th>)}
+            {columns.map((c) => <th key={c.key} className={['text', 'select', 'multi', 'check'].includes(c.type) ? '' : 'num'} style={{ width: c.width }}>{c.label}</th>)}
             {onChange && newRow && <th style={{ width: 40 }} />}
           </tr>
         </thead>
@@ -33,9 +33,28 @@ export default function EditTable({ columns, rows, onChange, newRow, minRows = 0
                     </select></td>
                   )
                 }
+                if (c.type === 'check') {
+                  const val = c.get ? c.get(r) : r[c.key]
+                  return <td key={c.key} style={{ textAlign: 'center' }}><input type="checkbox" checked={!!val} onChange={(e) => onChange(rows.map((x, j) => (j === i ? (c.set ? c.set(x, e.target.checked) : { ...x, [c.key]: e.target.checked }) : x)))} /></td>
+                }
+                if (c.type === 'multi') {
+                  const opts = typeof c.options === 'function' ? c.options(r) : c.options
+                  const val = r[c.key] || []
+                  return (
+                    <td key={c.key}><div className="multi">{opts.map((o) => (
+                      <label key={o.value} className={`chip-check ${val.includes(o.value) ? 'on' : ''}`}>
+                        <input type="checkbox" checked={val.includes(o.value)} onChange={(e) => set(i, c.key, e.target.checked ? [...val, o.value] : val.filter((v) => v !== o.value))} />{o.label}
+                      </label>
+                    ))}{!val.length && <span className="card-sub">{c.emptyLabel || 'Tous'}</span>}</div></td>
+                  )
+                }
                 if (c.type === 'text') return <td key={c.key}><input className="input" value={r[c.key] ?? ''} onChange={(e) => set(i, c.key, e.target.value)} /></td>
-                if (c.type === 'pct') return <td key={c.key} className="num"><NumInput className="input num-in" value={+((Number(r[c.key]) || 0) * 100).toFixed(4)} onChange={(v) => set(i, c.key, v / 100)} /></td>
-                return <td key={c.key} className="num"><NumInput className="input num-in" value={r[c.key] ?? 0} onChange={(v) => set(i, c.key, v)} /></td>
+                if (c.type === 'pct') {
+                  const blank = c.placeholder != null && (r[c.key] == null || r[c.key] === '' || Number(r[c.key]) === 0)
+                  return <td key={c.key} className="num"><NumInput className="input num-in" placeholder={c.placeholder != null ? String(+(c.placeholder * 100).toFixed(2)) : undefined} value={blank ? '' : +((Number(r[c.key]) || 0) * 100).toFixed(4)} onChange={(v) => set(i, c.key, v / 100)} /></td>
+                }
+                const blank = c.placeholder != null && (r[c.key] == null || r[c.key] === '' || Number(r[c.key]) === 0)
+                return <td key={c.key} className="num"><NumInput className="input num-in" placeholder={c.placeholder != null ? String(c.placeholder) : undefined} value={blank ? '' : (r[c.key] ?? 0)} onChange={(v) => set(i, c.key, v)} /></td>
               })}
               {onChange && newRow && (
                 <td><button className="btn btn-danger" style={{ padding: '3px 6px' }} disabled={rows.length <= minRows} onClick={() => onChange(rows.filter((_, j) => j !== i))}><Trash2 size={12} /></button></td>

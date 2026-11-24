@@ -298,6 +298,17 @@ create table if not exists public.mc_projects (
   updated_at  timestamptz not null default now()
 );
 create index if not exists mc_projects_owner_idx on public.mc_projects (owner_id, updated_at desc);
+-- Format unique : un projet = composants + opérations + besoin client → tous les onglets calculés
+alter table public.mc_projects drop constraint if exists mc_projects_type_check;
+alter table public.mc_projects add constraint mc_projects_type_check check (type in ('project','injection','materials','capacity'));
+alter table public.mc_projects alter column type set default 'project';
+
+-- Bibliothèque partagée des projets : matières (prix, densité), presses, encres, composants, emballages, étapes
+create table if not exists public.mc_library (
+  kind        text primary key,
+  items       jsonb not null default '[]'::jsonb,
+  updated_at  timestamptz not null default now()
+);
 
 -- Page d'accueil propre à un profil (ex. Seif → « Mes projets »)
 alter table public.mc_profiles add column if not exists home_path text;
@@ -315,7 +326,7 @@ begin
            where schemaname = 'public' and tablename like 'mc\_%' loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
-  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals','mc_paint_invoices','mc_paint_items','mc_colors','mc_projects'] loop
+  foreach t in array array['mc_profiles','mc_clients','mc_parameter_sets','mc_products','mc_calculations','mc_quotes','mc_samples','mc_posts','mc_post_comments','mc_post_likes','mc_goals','mc_paint_invoices','mc_paint_items','mc_colors','mc_projects','mc_library'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('create policy mc_open_access on public.%I for all to anon, authenticated using (true) with check (true)', t);
   end loop;
@@ -335,7 +346,7 @@ grant select, insert, update, delete on
   public.mc_profiles, public.mc_clients, public.mc_parameter_sets, public.mc_products,
   public.mc_calculations, public.mc_quotes, public.mc_samples,
   public.mc_posts, public.mc_post_comments, public.mc_post_likes, public.mc_goals,
-  public.mc_paint_invoices, public.mc_paint_items, public.mc_colors, public.mc_projects
+  public.mc_paint_invoices, public.mc_paint_items, public.mc_colors, public.mc_projects, public.mc_library
   to anon, authenticated;
 grant usage, select on sequence public.mc_quote_seq to anon, authenticated;
 

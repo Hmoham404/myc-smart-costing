@@ -475,3 +475,61 @@ font[style*="vertical-align"] { vertical-align: baseline !important; }
 .ws-go { margin-top: auto; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--text-2); }
 .ws-metal:hover .ws-go { color: #2a78d6; } .ws-projects:hover .ws-go { color: #1baf7a; }
 @media (max-width: 800px) { .ws-grid { grid-template-columns: 1fr; } .ws-switch { display: none; } }
+
+/* ---------------- Projet : onglets ---------------- */
+.tabs { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.tab-btn { display: inline-flex; align-items: center; gap: 7px; border: 0; background: none; padding: 10px 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.on { color: var(--primary); border-bottom-color: var(--primary); }
+.tabs .spacer { flex: 1; }
+.project-meta { display: flex; gap: 14px; font-size: 12.5px; color: var(--text-2); margin-top: 4px; }
+
+/* ---------------- Fenêtre de création ---------------- */
+.modal-back { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); backdrop-filter: blur(3px); z-index: 90; display: grid; place-items: center; padding: 20px; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-lg); width: min(1100px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; }
+.wizard-head { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--divider); }
+.wizard-head > b { font-size: 17px; }
+.steps { display: flex; gap: 6px; flex: 1; justify-content: center; flex-wrap: wrap; }
+.step { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 4px 10px; border-radius: 20px; }
+.step i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; background: var(--surface-2); border: 1px solid var(--border); }
+.step.on { color: var(--primary); background: var(--primary-soft); } .step.on i { background: var(--primary); color: #fff; border-color: var(--primary); }
+.step.done i { background: var(--good); color: #fff; border-color: var(--good); }
+.wizard-body { padding: 18px 20px; overflow: auto; flex: 1; }
+.wizard-foot { display: flex; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--divider); }
+.chip-check { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 20px; padding: 3px 9px; font-size: 12px; cursor: pointer; background: var(--surface); white-space: nowrap; }
+.chip-check input { margin: 0; }
+.chip-check.on { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-ink); font-weight: 600; }
+.chip-check.big { font-size: 14px; padding: 8px 14px; }
+.multi { display: flex; gap: 4px; flex-wrap: wrap; min-width: 160px; }
+.need-row td { background: var(--surface-2); }
+
+/* ---------------- Gantt journalier ---------------- */
+.gantt-wrap { overflow-x: auto; border: 1px solid var(--divider); border-radius: 10px; }
+.gchart { border-collapse: collapse; font-size: 11.5px; }
+.gchart th, .gchart td { padding: 0; border-bottom: 1px solid var(--divider); }
+.gc-name { position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 230px; max-width: 230px; padding: 6px 10px !important; text-align: start; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-inline-end: 1px solid var(--border); }
+.gc-week { font-weight: 700; color: var(--text-2); padding: 5px 0 !important; border-inline-start: 1px solid var(--border); text-align: center; }
+.gc-day { width: 18px; min-width: 18px; color: var(--muted); font-weight: 600; text-align: center; padding: 3px 0 !important; }
+.gc-cell { width: 18px; min-width: 18px; height: 26px; }
+.gc-day.we, .gc-cell.we { background: color-mix(in srgb, #cbd5e1 45%, transparent); }
+.gc-day.hol, .gc-cell.hol { background: color-mix(in srgb, #fca5a5 55%, transparent); }
+.gc-cell.today { box-shadow: inset 2px 0 0 var(--primary); }
+.gc-bar { height: 14px; margin: 0 -1px; }
+.gc-group td { background: var(--surface-2); }
+
+/* ---------------- Conception 3D ---------------- */
+.cad { display: grid; grid-template-columns: 270px minmax(0, 1fr) 290px; gap: 16px; align-items: start; }
+.cad > .card { margin-bottom: 0; }
+.cad-tree { padding: 14px; }
+.cad-feat { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid transparent; background: none; padding: 7px 10px; border-radius: 8px; color: var(--text); text-align: start; font-weight: 500; }
+.cad-feat:hover { background: var(--surface-2); }
+.cad-feat.on { background: var(--primary-soft); border-color: color-mix(in srgb, var(--primary) 35%, transparent); color: var(--primary-ink); }
+.cad-feat.off { opacity: .55; }
+.cad-view { padding: 0; overflow: hidden; }
+.cad-toolbar { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--divider); }
+.cad-toolbar .spacer { flex: 1; }
+.cad-canvas { height: 560px; background: linear-gradient(#eef2f6, #cfd8e2); }
+.hole-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 6px; }
+.hole-row input { padding: 6px 6px !important; }
+@media (max-width: 1300px) { .cad { grid-template-columns: 240px minmax(0, 1fr); } .cad-props { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .cad { grid-template-columns: 1fr; } }
